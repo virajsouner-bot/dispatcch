@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum Role {
+  ADMIN
+  DISPATCHER
+  DRIVER
+  FLEET_MANAGER
+  WAREHOUSE_MANAGER
+  CUSTOMER
+  ANALYST
+}
+
+enum ShipmentStatus {
+  CREATED
+  CONFIRMED
+  PICKUP_SCHEDULED
+  PICKED_UP
+  AT_WAREHOUSE
+  PROCESSING
+  ASSIGNED
+  DISPATCHED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  DELAYED
+  FAILED_DELIVERY
+  RETURNED
+  LOST
+  DAMAGED
+  ON_HOLD
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipments Shipment[]
+}
+
+model Shipment {
+  id          String         @id @default(cuid())
+  trackingId  String         @unique
+  status      ShipmentStatus @default(CREATED)
+
+  senderName      String
+  senderPhone     String
+  senderAddress   String
+
+  receiverName    String
+  receiverPhone   String
+  receiverAddress String
+
+  weight      Float?
+  quantity    Int      @default(1)
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerId String?
+  customer   User? @relation(fields: [customerId], references: [id])
+
+  packages       Package[]
+  trackingEvents TrackingEvent[]
+}
+
+model Package {
+  id         String @id @default(cuid())
+  weight     Float?
+  length     Float?
+  width      Float?
+  height     Float?
+  quantity   Int    @default(1)
+
+  shipmentId String
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+}
+
+model TrackingEvent {
+  id         String   @id @default(cuid())
+  status     ShipmentStatus
+  location   String?
+  description String?
+  createdAt  DateTime @default(now())
+
+  shipmentId String
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+}
